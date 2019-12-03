@@ -2,3 +2,5 @@
 .env
 venv
 .vscode/
+app.sqlite3
+migrations
