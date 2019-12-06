@@ -37,19 +37,19 @@ class User(UserMixin, db.Model):
 
 class OAuth(OAuthConsumerMixin, db.Model):
     provider_user_id = db.Column(db.String(256), unique=True, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     user = db.relationship(User)
 
 class Token(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     uuid = db.Column(db.String, unique=True)
-    user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     user = db.relationship(User)
 
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    seller_id = db.Column(db.Integer, db.ForeignKey(User.id))
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     name = db.Column(db.String(80), nullable=False)
     img_url = db.Column(db.String, default='https://i-love-png.com/images/no-image-slide.png')
     description = db.Column(db.Text)
