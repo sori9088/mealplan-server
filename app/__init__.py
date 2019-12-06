@@ -50,7 +50,8 @@ def getuser():
         "user":{
         "user_id" : current_user.id,
         "user_name" : current_user.name ,
-        "avatar_url" : current_user.avatar_url
+        "avatar_url" : current_user.avatar_url,
+        "seller" : current_user.seller
                 }
     })
 
@@ -92,7 +93,9 @@ def register() :
             })
         new_user = User(
             name=data['name'],
-            email=data['email']
+            email=data['email'],
+            avatar_url =  "https://img.icons8.com/cotton/2x/person-male.png" if data['avatar_url']== "" else  data['avatar_url'],
+            seller=True if data['seller'] =='true' else False
         )
         new_user.set_password(data['password'])
         db.session.add(new_user)

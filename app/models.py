@@ -2,6 +2,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
+from sqlalchemy.sql import func
+
+
 
 
 db = SQLAlchemy()
@@ -13,8 +17,9 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(256))
     email = db.Column(db.String(80), unique= True)
     password = db.Column(db.String(200))
-    avatar_url = db.Column(db.String(200),default='https://img.icons8.com/cotton/2x/person-male.png')
-
+    avatar_url = db.Column(db.String, default='https://img.icons8.com/cotton/2x/person-male.png')
+    seller = db.Column(db.Boolean, default=False)
+    products = db.relationship('Product', backref='user', lazy=True)
         
     def set_password(self, password) :
         self.password = generate_password_hash(password)
@@ -26,7 +31,8 @@ class User(UserMixin, db.Model):
         return {
                     "name":self.name,
                     "id":self.id,
-                    "email":self.email
+                    "email":self.email,
+                    "seller":self.seller
                 }
 
 class OAuth(OAuthConsumerMixin, db.Model):
@@ -41,6 +47,23 @@ class Token(db.Model):
     user = db.relationship(User)
 
 
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    seller_id = db.Column(db.Integer, db.ForeignKey(User.id))
+    name = db.Column(db.String(80), nullable=False)
+    img_url = db.Column(db.String, default='https://i-love-png.com/images/no-image-slide.png')
+    description = db.Column(db.Text)
+    # store_name = db.Column(db.String(20), nullable=False)
+    # location = db.Column(db.String(200), nullable=False)
+    # orders = db.relationship('Order', backref='product', lazy=True)
+    created = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    price = db.Column(db.String(20), nullable=False)
+
+
+# class Cart(db.Model):
+#     user_id= db.Column(db.Integer, db.ForeignKey(User.id))
+#     product_id= db.Column(db.Integer, db.ForeignKey(Product.id))
+ 
 
 # setup login manager
 login_manager = LoginManager()
