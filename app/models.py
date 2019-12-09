@@ -20,6 +20,8 @@ class User(UserMixin, db.Model):
     avatar_url = db.Column(db.String, default='https://img.icons8.com/cotton/2x/person-male.png')
     seller = db.Column(db.Boolean, default=False)
     products = db.relationship('Product', backref='user', lazy=True)
+    cartss = db.relationship('Cart', backref='user', lazy=True)
+
         
     def set_password(self, password) :
         self.password = generate_password_hash(password)
@@ -49,7 +51,7 @@ class Token(db.Model):
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    seller_id= db.Column(db.Integer, db.ForeignKey('users.id'))
     name = db.Column(db.String(80), nullable=False)
     img_url = db.Column(db.String, default='https://i-love-png.com/images/no-image-slide.png')
     description = db.Column(db.Text)
@@ -58,12 +60,32 @@ class Product(db.Model):
     # orders = db.relationship('Order', backref='product', lazy=True)
     created = db.Column(db.DateTime(timezone=True), server_default=func.now())
     price = db.Column(db.String(20), nullable=False)
+    out_of_stock = db.Column(db.Boolean, default=False)
+
+    #relationship
+    order_items = db.relationship('OrderItem', backref="product", lazy=True)
 
 
-# class Cart(db.Model):
-#     user_id= db.Column(db.Integer, db.ForeignKey(User.id))
-#     product_id= db.Column(db.Integer, db.ForeignKey(Product.id))
- 
+class Cart(db.Model):
+    __tablename__='carts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id= db.Column(db.Integer, db.ForeignKey(User.id))
+    order_items = db.relationship('OrderItem', backref="cart", lazy=True)
+    checkout = db.Column(db.Boolean, default=False)
+
+class OrderItem(db.Model):
+    __tablename__="order_items" 
+    id = db.Column(db.Integer, primary_key=True)
+    product_id= db.Column(db.Integer, db.ForeignKey(Product.id))
+    cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
+
+# class Order(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
+
+
+
+
 
 # setup login manager
 login_manager = LoginManager()
