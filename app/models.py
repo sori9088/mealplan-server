@@ -22,13 +22,13 @@ class User(UserMixin, db.Model):
     products = db.relationship('Product', backref='user', lazy=True)
     cartss = db.relationship('Cart', backref='user', lazy=True)
 
-        
+
     def set_password(self, password) :
         self.password = generate_password_hash(password)
-    
+
     def check_password(self,password) :
         return check_password_hash(self.password, password)
-    
+
     def render(self):
         return {
                     "name":self.name,
@@ -74,7 +74,7 @@ class Cart(db.Model):
     checkout = db.Column(db.Boolean, default=False)
 
 class OrderItem(db.Model):
-    __tablename__="order_items" 
+    __tablename__="order_items"
     id = db.Column(db.Integer, primary_key=True)
     product_id= db.Column(db.Integer, db.ForeignKey(Product.id))
     cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
