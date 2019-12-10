@@ -64,6 +64,7 @@ def login() :
         if not user :
             return jsonify({
                 "success" : False,
+                "code" : 1,
                 "message" : "You should sign up first"
             })
         if user.check_password(data['password']):
@@ -79,7 +80,7 @@ def login() :
                 token=token.uuid,
                 user=user.render()
             )
-        return jsonify(success=False, message="Wrong password")
+        return jsonify(success=False, code=2, message="Wrong password")
 
 
 @app.route("/register", methods=['POST','GET'])
