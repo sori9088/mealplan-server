@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, flash, render_template, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_login import login_required, logout_user, current_user,login_user
 from .config import Config
 from .models import db, login_manager, Token, User, Product, Cart, OrderItem
@@ -8,6 +8,8 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import uuid
+from dotenv import load_dotenv
+load_dotenv()
 
 
 
@@ -20,6 +22,8 @@ db.init_app(app)
 migrate = Migrate(app, db) # this
 login_manager.init_app(app)
 
+from .components.product import pb
+app.register_blueprint(pb, url_prefix='/product')
 
 
 @app.route("/logout", methods=['GET','POST'])
@@ -189,20 +193,40 @@ def add_cart():
 @app.route("/get_cart/<id>", methods=['GET'])
 def get_cart(id) :
     carts = Cart.query.filter_by(user_id=id, checkout=False).first()
-    orderitems = OrderItem.query.filter_by(cart_id=carts.id).all()
+    # items = OrderItem.query.filter_by(cart_id=carts.id).all()
+    orderitems = carts.get_bill()
     num_of_items = len(orderitems)
     cur_user = User.query.filter_by(id= id).first()
+    b = carts.get_total()
 
     data = {
-        "cart" : {
+            "count": num_of_items,
             "user_id" : carts.user_id,
             "checkout" : carts.checkout,
             "items_cart" :[{
-            "seller_name" : orderitem.product.user.name,
-            "product_name" : orderitem.product.name
-            } for orderitem in orderitems]
-            }
-        ,"count": num_of_items
+            "seller_name" : orderitem.seller_name,
+            "product_id" : orderitem.id,
+            "product_name" : orderitem.name,
+            "product_price" : orderitem.price,
+            "img_url" : orderitem.img_url,
+            "quantity" : orderitem.quantity,
+            "each_total" : orderitem.amount
+            } for orderitem in orderitems],
+            "total" : b[0].amount
     }
 
     return jsonify(data)
+
+
+@app.route("/delete_cart", methods=['POST','GET'])
+@login_required
+def delete_cart() :
+        data = request.get_json()
+        if request.method =='POST':
+            carts = Cart.query.filter_by(user_id=current_user.id, checkout=False).first()
+            item = OrderItem.query.filter_by(product_id=data['product_id'], cart_id=carts.id).delete()
+            db.session.commit()
+            return jsonify({
+                "success" : True,
+                "message" : "Something wrong!"
+            })

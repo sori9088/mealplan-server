@@ -59,19 +59,41 @@ class Product(db.Model):
     # location = db.Column(db.String(200), nullable=False)
     # orders = db.relationship('Order', backref='product', lazy=True)
     created = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    price = db.Column(db.String(20), nullable=False)
+    price = db.Column(db.Float)
     out_of_stock = db.Column(db.Boolean, default=False)
 
     #relationship
-    order_items = db.relationship('OrderItem', backref="product", lazy=True)
+    order_items = db.relationship('OrderItem', backref="product", lazy="dynamic")
 
 
 class Cart(db.Model):
     __tablename__='carts'
     id = db.Column(db.Integer, primary_key=True)
     user_id= db.Column(db.Integer, db.ForeignKey(User.id))
-    order_items = db.relationship('OrderItem', backref="cart", lazy=True)
+    order_items = db.relationship('OrderItem', backref="cart", lazy="dynamic")
     checkout = db.Column(db.Boolean, default=False)
+
+    def get_total(self):
+        return OrderItem.query.join(Product).with_entities(
+            func.count(Product.id).label('quantity'),
+            func.sum(Product.price).label('amount')).filter(OrderItem.cart_id == self.id).all()
+
+    def get_bill(self):
+        return OrderItem.query.join(Product).join(User).with_entities(
+            Product.id.label('id'),
+            Product.name.label('name'),
+            Product.price.label('price'),
+            Product.img_url.label('img_url'),
+            User.name.label('seller_name'),
+            func.count(Product.id).label('quantity'),
+            func.sum(Product.price).label('amount')
+            ).filter(OrderItem.cart_id == self.id).filter(User.id == Product.seller_id).group_by(Product.id, User.name).all()
+
+    # def get_seller(self):
+    #     return OrderItem.query.join(User).with_entities(
+    #         User.name.label('seller')
+    #     ).filter(OrderItem.cart_id == self.id).filter(User.id == self.product.user.id).all()
+
 
 class OrderItem(db.Model):
     __tablename__="order_items"
