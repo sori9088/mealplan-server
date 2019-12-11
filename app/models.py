@@ -59,7 +59,7 @@ class Product(db.Model):
     # location = db.Column(db.String(200), nullable=False)
     # orders = db.relationship('Order', backref='product', lazy=True)
     created = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    price = db.Column(db.Float)
+    price = db.Column(db.Float, nullable=False)
     out_of_stock = db.Column(db.Boolean, default=False)
 
     #relationship
