@@ -21,8 +21,24 @@ def new_dish() :
         )
         db.session.add(new_dish)
         db.session.commit()
+
+        products = Product.query.all()
+
+        data = {
+            "dishes":[{
+            "id" : product.id,
+            "name" : product.name ,
+            "img_url" : product.img_url,
+            "description" : product.description,
+            "seller" : User.query.filter_by(id=product.seller_id).first().name,
+            "created" : product.created,
+            "price" : product.price
+                    } for product in products ]
+        }
+
         return jsonify({
-            "success" : True
+            "success" : True,
+            "data" : data
         })
 
 

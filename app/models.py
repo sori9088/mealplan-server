@@ -72,11 +72,13 @@ class Cart(db.Model):
     user_id= db.Column(db.Integer, db.ForeignKey(User.id))
     order_items = db.relationship('OrderItem', backref="cart", lazy="dynamic")
     checkout = db.Column(db.Boolean, default=False)
+    orderss = db.relationship('Order', backref="cart", lazy=True)
 
     def get_total(self):
         return OrderItem.query.join(Product).with_entities(
             func.count(Product.id).label('quantity'),
-            func.sum(Product.price).label('amount')).filter(OrderItem.cart_id == self.id).all()
+            func.sum(Product.price).label('amount'),
+            (func.sum(Product.price)+3).label('ship')).filter(OrderItem.cart_id == self.id).all()
 
     def get_bill(self):
         return OrderItem.query.join(Product).join(User).with_entities(
@@ -89,11 +91,6 @@ class Cart(db.Model):
             func.sum(Product.price).label('amount')
             ).filter(OrderItem.cart_id == self.id).filter(User.id == Product.seller_id).group_by(Product.id, User.name).all()
 
-    # def get_seller(self):
-    #     return OrderItem.query.join(User).with_entities(
-    #         User.name.label('seller')
-    #     ).filter(OrderItem.cart_id == self.id).filter(User.id == self.product.user.id).all()
-
 
 class OrderItem(db.Model):
     __tablename__="order_items"
@@ -101,12 +98,23 @@ class OrderItem(db.Model):
     product_id= db.Column(db.Integer, db.ForeignKey(Product.id))
     cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
 
-# class Order(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
+    status = db.Column(db.String, default = "Ordered")
+    add = db.relationship('Address', backref="order", lazy=True)
 
 
-
+class Address(db.Model):
+    id= db.Column(db.Integer, primary_key = True)
+    order_id = db.Column(db.Integer, db.ForeignKey(Order.id))
+    firstname = db.Column(db.String)
+    lastname = db.Column(db.String)
+    add1 = db.Column(db.String)
+    add2 = db.Column(db.String)
+    city = db.Column(db.String)
+    zipcode = db.Column(db.Integer)
 
 
 # setup login manager

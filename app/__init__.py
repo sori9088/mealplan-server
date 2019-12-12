@@ -1,12 +1,13 @@
 from flask import Flask, jsonify, request, render_template
 from flask_login import login_required, logout_user, current_user,login_user
 from .config import Config
-from .models import db, login_manager, Token, User, Product, Cart, OrderItem
+from .models import db, login_manager, Token, User, Product, Cart, OrderItem, Order
 from .oauth import blueprint
 from .cli import create_db
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+import stripe
 import uuid
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,8 +23,14 @@ db.init_app(app)
 migrate = Migrate(app, db) # this
 login_manager.init_app(app)
 
+
+
+
 from .components.product import pb
 app.register_blueprint(pb, url_prefix='/product')
+
+from .components.cart import cb
+app.register_blueprint(cb, url_prefix='/cart')
 
 
 @app.route("/logout", methods=['GET','POST'])
@@ -108,125 +115,3 @@ def register() :
         return jsonify({
                "success" : True
         })
-
-
-@app.route("/new_dish", methods=['POST', 'GET'])
-@login_required
-def new_dish() :
-    user_id = current_user.id
-    if request.method =='POST' :
-        data= request.get_json()
-        new_dish = Product(
-            name=data['name'],
-            seller_id = user_id,
-            price= data['price'],
-            img_url= "https://i-love-png.com/images/no-image-slide.png" if data['img_url']=="" else data['img_url'],
-            description= data['description']
-        )
-        db.session.add(new_dish)
-        db.session.commit()
-        return jsonify({
-            "success" : True
-        })
-
-
-@app.route("/get_products", methods=['GET','POST'])
-def get_products():
-    products = Product.query.all()
-
-    data = {
-        "dishes":[{
-        "id" : product.id,
-        "name" : product.name ,
-        "img_url" : product.img_url,
-        "description" : product.description,
-        "seller" : User.query.filter_by(id=product.seller_id).first().name,
-        "created" : product.created,
-        "price" : product.price
-                } for product in products ]
-    }
-    return jsonify(data)
-
-
-@app.route("/detail/<id>", methods=['GET','POST'])
-def single_product(id):
-    product = Product.query.filter_by(id=id).first()
-    data = {
-        "id" : product.id,
-        "name" : product.name ,
-        "img_url" : product.img_url,
-        "description" : product.description,
-        "seller" : User.query.filter_by(id=product.seller_id).first().name,
-        "created" : product.created,
-        "price" : product.price
-        }
-
-    return jsonify(data)
-
-
-@app.route("/add_cart", methods=['POST'])
-@login_required
-def add_cart():
-    if request.method == 'POST':
-
-        cur_cart = Cart.query.filter_by(user_id=current_user.id,  checkout = False).first()
-        if not cur_cart :
-            cur_cart= Cart(user_id = current_user.id, checkout = False)
-            db.session.add(cur_cart)
-            db.session.commit()
-        data = request.get_json()
-        num = data['quantity']
-        product = Product.query.filter_by(id= data['product_id']).first()
-        orderitems = []
-        for i in range(num) :
-            new = OrderItem(product_id = product.id ,
-                            cart_id = cur_cart.id)
-            orderitems.append(new)
-
-        db.session.add_all(orderitems)
-        db.session.commit()
-        return jsonify({
-            "success" : True
-        })
-
-
-@app.route("/get_cart/<id>", methods=['GET'])
-def get_cart(id) :
-    carts = Cart.query.filter_by(user_id=id, checkout=False).first()
-    # items = OrderItem.query.filter_by(cart_id=carts.id).all()
-    orderitems = carts.get_bill()
-    num_of_items = len(orderitems)
-    cur_user = User.query.filter_by(id= id).first()
-    b = carts.get_total()
-
-    data = {
-            "count": num_of_items,
-            "user_id" : carts.user_id,
-            "checkout" : carts.checkout,
-            "items_cart" :[{
-            "seller_name" : orderitem.seller_name,
-            "product_id" : orderitem.id,
-            "product_name" : orderitem.name,
-            "product_price" : orderitem.price,
-            "img_url" : orderitem.img_url,
-            "quantity" : orderitem.quantity,
-            "each_total" : orderitem.amount
-            } for orderitem in orderitems],
-            "total" : b[0].amount
-    }
-
-    return jsonify(data)
-
-
-@app.route("/delete_cart", methods=['POST','GET'])
-@login_required
-def delete_cart() :
-        data = request.get_json()
-        if request.method =='POST':
-            carts = Cart.query.filter_by(user_id=current_user.id, checkout=False).first()
-            item = OrderItem.query.filter_by(product_id=data['product_id'], cart_id=carts.id).delete()
-            db.session.commit()
-            return jsonify({
-                "success" : True,
-                "message" : "Something wrong!"
-            })
