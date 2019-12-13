@@ -2,6 +2,15 @@ from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from app.models import db, login_manager, Token, User, Product, Cart, OrderItem, Order, Address
 import stripe
+import os
+
+stripe_keys = {
+  'secret_key': os.environ['STRIPE_SECRET_KEY'],
+  'publishable_key': os.environ['STRIPE_PUBLISHABLE_KEY']
+}
+
+stripe.api_key = stripe_keys['secret_key']
+
 
 cb = Blueprint('cart', __name__)
 
@@ -70,6 +79,7 @@ def get_cart(id) :
 
         data = {
                 "count": num_of_items,
+                "cart_id" : carts.id,
                 "user_id" : carts.user_id,
                 "checkout" : carts.checkout,
                 "items_cart" :[{
@@ -92,6 +102,7 @@ def get_cart(id) :
         db.session.add(cur_cart)
         db.session.commit()
 
+        carts = Cart.query.filter_by(user_id=id, checkout=False).first()
         orderitems = carts.get_bill()
         num_of_items = len(orderitems)
         cur_user = User.query.filter_by(id= id).first()
@@ -99,6 +110,7 @@ def get_cart(id) :
 
         data = {
                 "count": num_of_items,
+                "cart_id" : carts.id,
                 "user_id" : carts.user_id,
                 "checkout" : carts.checkout,
                 "items_cart" :[{
@@ -123,8 +135,8 @@ def get_cart(id) :
 @cb.route("/delete", methods=['POST','GET'])
 @login_required
 def delete_cart() :
-        data = request.get_json()
         if request.method =='POST':
+            data = request.get_json()
             carts = Cart.query.filter_by(user_id=current_user.id, checkout=False).first()
             item = OrderItem.query.filter_by(product_id=data['product_id'], cart_id=carts.id).delete()
             db.session.commit()
@@ -135,6 +147,7 @@ def delete_cart() :
 
             data = {
                     "count": num_of_items,
+                    "cart_id" : carts.id,
                     "user_id" : carts.user_id,
                     "checkout" : carts.checkout,
                     "items_cart" :[{
@@ -158,29 +171,56 @@ def delete_cart() :
                 "data" : data
             })
 
-@cb.route("/charge/<id>", methods=['POST','GET'])
-def charge(id) :
+
+@cb.route("/charge", methods=['POST','GET'])
+@login_required
+def charge() :
     if request.method =='POST':
-        cur_cart = Cart.query.filter_by(user_id=id, checkout = False).first()
+        data = request.get_json()
+        cur_cart = Cart.query.filter_by(user_id=current_user.id, checkout = False).first()
+        if (not cur_cart):
+            return jsonify({
+            "success": False,
+            "message" : "There is no cart"
+            })
+
+        amount = data['price']
+
+        stripe.Charge.create(
+            amount= amount*100,
+            currency= 'usd',
+            card = data['token']
+        )
+
         cur_cart.checkout = True
 
         new_order = Order(cart_id = cur_cart.id)
         db.session.add(new_order)
         db.session.commit()
 
-        data = request.get_json()
-        amount = data['price']
-        customer = stripe.Customer.create(
-            email = current_user.email,
-            source = data['token']
-        )
-        stripe.Charge.create(
-            customer = customer.id,
-            amount= amount,
-            currency= 'usd',
-            card = data['token']
-        )
+    return jsonify({
+        "success" : True
+    })
 
+
+@cb.route("/addAdd", methods=['POST','GET'])
+@login_required
+def addAdd():
+    if request.method =='POST' :
+        data = request.get_json()['data']
+        cur_order = Order.query.filter_by(cart_id = data['cart_id']).first()
+        data = data['form']
+        new_add = Address(
+            order_id = cur_order.id,
+            firstname = data['fname'],
+            lastname = data['lname'],
+            add1= data['add1'],
+            add2=data['add2'],
+            city= data['city'],
+            zipcode = data['zip']
+        )
+        db.session.add(new_add)
+        db.session.commit()
     return jsonify({
         "success" : True
     })
