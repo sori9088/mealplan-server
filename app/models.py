@@ -65,6 +65,17 @@ class Product(db.Model):
     #relationship
     order_items = db.relationship('OrderItem', backref="product", lazy="dynamic")
 
+    def get_products(self):
+        return Product.query.filter_by(seller_id=self.id).all()
+
+    def get_orders(self):
+        return OrderItem.query.join(Cart).join(User).with_entities(
+            Cart.id.label('id'),
+            Cart.user_id.label('user_id'),
+            User.name.label('user_name'),
+            func.count(Cart.id).label('quantity'),
+            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id,User.id).all()
+
 
 class Cart(db.Model):
     __tablename__='carts'
@@ -90,7 +101,9 @@ class Cart(db.Model):
             func.count(Product.id).label('quantity'),
             func.sum(Product.price).label('amount')
             ).filter(OrderItem.cart_id == self.id).filter(User.id == Product.seller_id).group_by(Product.id, User.name).all()
-
+    
+    
+    
 
 class OrderItem(db.Model):
     __tablename__="order_items"
@@ -103,6 +116,7 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
     status = db.Column(db.String, default = "Ordered")
+    created = db.Column(db.DateTime(timezone=True), server_default=func.now())
     add = db.relationship('Address', backref="order", lazy=True)
 
 

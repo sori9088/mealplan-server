@@ -22,7 +22,7 @@ def new_dish() :
         db.session.add(new_dish)
         db.session.commit()
 
-        products = Product.query.all()
+        products = Product.query.order_by(Product.out_of_stock.asc()).all()
 
         data = {
             "dishes":[{
@@ -32,7 +32,8 @@ def new_dish() :
             "description" : product.description,
             "seller" : User.query.filter_by(id=product.seller_id).first().name,
             "created" : product.created,
-            "price" : product.price
+            "price" : product.price,
+            "status" : product.out_of_stock
                     } for product in products ]
         }
 
@@ -44,7 +45,7 @@ def new_dish() :
 
 @pb.route("/get", methods=['GET','POST'])
 def get_products():
-    products = Product.query.all()
+    products = Product.query.order_by(Product.out_of_stock.asc()).all()
 
     data = {
         "dishes":[{
@@ -54,15 +55,41 @@ def get_products():
         "description" : product.description,
         "seller" : User.query.filter_by(id=product.seller_id).first().name,
         "created" : product.created,
-        "price" : product.price
+        "price" : product.price,
+        "status" : "In stock" if product.out_of_stock==False else "Sold Out"
                 } for product in products ]
     }
     return jsonify(data)
 
 
+@pb.route("/seller", methods=['GET','POST'])
+@login_required
+def get_seller():
+    products = Product.query.filter_by(seller_id = current_user.id).order_by(Product.out_of_stock.asc()).all()
+    num = len(products)
+
+    data = {
+        "quantity" : num,
+        "dishes":[{
+        "id" : product.id,
+        "name" : product.name ,
+        "img_url" : product.img_url,
+        "description" : product.description,
+        "seller" : User.query.filter_by(id=product.seller_id).first().name,
+        "created" : product.created,
+        "price" : product.price,
+        "status" : product.out_of_stock
+
+                } for product in products ]
+    }
+    return jsonify(data)
+
 @pb.route("/detail/<id>", methods=['GET','POST'])
 def single_product(id):
     product = Product.query.filter_by(id=id).first()
+    if product.out_of_stock == True : status = "Sold Out"
+    else : status = "In stock"
+
     data = {
         "id" : product.id,
         "name" : product.name ,
@@ -70,7 +97,36 @@ def single_product(id):
         "description" : product.description,
         "seller" : User.query.filter_by(id=product.seller_id).first().name,
         "created" : product.created,
-        "price" : product.price
+        "price" : product.price,
+        "status" : status
+
         }
 
     return jsonify(data)
+
+@pb.route("/soldout", methods=['GET','POST'])
+def soldout():
+    if request.method== 'POST' :
+        data = request.get_json()
+        product = Product.query.filter_by(id = data['product_id']).first()
+        product.out_of_stock = True
+        db.session.commit()
+
+        products = Product.query.filter_by(seller_id = current_user.id).order_by(Product.out_of_stock.asc()).all()
+        num = len(products)
+
+        data = {
+            "quantity" : num,
+            "dishes":[{
+            "id" : product.id,
+            "name" : product.name ,
+            "img_url" : product.img_url,
+            "description" : product.description,
+            "seller" : User.query.filter_by(id=product.seller_id).first().name,
+            "created" : product.created,
+            "price" : product.price,
+            "status" : "In stock" if product.out_of_stock==False else "Sold Out"
+                    } for product in products ]
+        }
+        return jsonify(data)
+

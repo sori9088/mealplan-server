@@ -67,18 +67,17 @@ def add_cart():
         })
 
 
-@cb.route("/get/<id>", methods=['GET'])
-def get_cart(id) :
-    carts = Cart.query.filter_by(user_id=id, checkout=False).first()
+@cb.route("/get", methods=['GET'])
+@login_required
+def get_cart() :
+    carts = Cart.query.filter_by(user_id=current_user.id, checkout=False).first()
     # items = OrderItem.query.filter_by(cart_id=carts.id).all()
     if(carts):
         orderitems = carts.get_bill()
-        num_of_items = len(orderitems)
-        cur_user = User.query.filter_by(id= id).first()
         b = carts.get_total()
+    
 
         data = {
-                "count": num_of_items,
                 "cart_id" : carts.id,
                 "user_id" : carts.user_id,
                 "checkout" : carts.checkout,
@@ -96,16 +95,16 @@ def get_cart(id) :
                 "ship" : b[0].ship,
                 "shipfee" : 3
         }
+        return jsonify(data)
 
     else :
-        cur_cart= Cart(user_id = id, checkout = False)
+        cur_cart= Cart(user_id = current_user.id, checkout = False)
         db.session.add(cur_cart)
         db.session.commit()
 
-        carts = Cart.query.filter_by(user_id=id, checkout=False).first()
+        carts = Cart.query.filter_by(user_id=current_user.id, checkout=False).first()
         orderitems = carts.get_bill()
         num_of_items = len(orderitems)
-        cur_user = User.query.filter_by(id= id).first()
         b = carts.get_total()
 
         data = {
@@ -129,7 +128,7 @@ def get_cart(id) :
 
         }
 
-    return jsonify(data)
+        return jsonify(data)
 
 
 @cb.route("/delete", methods=['POST','GET'])
@@ -198,9 +197,40 @@ def charge() :
         db.session.add(new_order)
         db.session.commit()
 
-    return jsonify({
-        "success" : True
-    })
+
+        new_cart= Cart(user_id = current_user.id, checkout = False)
+        db.session.add(new_cart)
+        db.session.commit()
+
+        carts = Cart.query.filter_by(user_id=current_user.id, checkout=False).first()
+        orderitems1 = carts.get_bill()
+        num_of_items = len(orderitems1)
+        b = carts.get_total()
+
+        data = {
+                "count": num_of_items,
+                "user_id" : carts.user_id,
+                "checkout" : carts.checkout,
+                "items_cart" :[{
+                "seller_name" : orderitem.seller_name,
+                "product_id" : orderitem.id,
+                "product_name" : orderitem.name,
+                "product_price" : orderitem.price,
+                "img_url" : orderitem.img_url,
+                "quantity" : orderitem.quantity,
+                "each_total" : orderitem.amount
+                } for orderitem in orderitems1],
+                "total" : b[0].amount,
+                "whole" : b[0].quantity,
+                "ship" : b[0].ship,
+                "shipfee" : 3
+        }
+
+        return jsonify({
+            "success" : True,
+            "data" : data
+        })
+
 
 
 @cb.route("/addAdd", methods=['POST','GET'])

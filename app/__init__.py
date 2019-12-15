@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, render_template
 from flask_login import login_required, logout_user, current_user,login_user
 from .config import Config
-from .models import db, login_manager, Token, User, Product, Cart, OrderItem, Order
+from .models import db, login_manager, Token, User, Product, Cart, OrderItem, Order, Address
 from .oauth import blueprint
 from .cli import create_db
 from flask_migrate import Migrate
@@ -42,7 +42,6 @@ def logout():
         db.session.commit()
 
     logout_user()
-    flash("You have logged out")
     return jsonify({
         "success" : True
     })
@@ -115,3 +114,60 @@ def register() :
         return jsonify({
                "success" : True
         })
+
+
+@app.route("/user/order/get" , methods=['GET'])
+@login_required
+def get_order():
+    carts = Cart.query.filter_by(user_id=current_user.id, checkout=True).all()
+    if carts :
+        carts1 =[ {
+            "cart_id": cart.id,
+            "status" : cart.orderss[0].status,
+            "ordered" : cart.orderss[0].created
+            }for cart in carts]
+        
+        # import code; code.interact(local=dict(globals(), **locals()))
+        new_carts=[]
+        for cart in carts:
+            orders = []
+            for i in cart.get_bill() :
+                orders.append({
+                    "seller_name" : i.seller_name,
+                    "product_id" : i.id,
+                    "product_name" : i.name,
+                    "product_price" : i.price,
+                    "img_url" : i.img_url,
+                    "quantity" : i.quantity,
+                    "each_total" : i.amount
+                })
+            new_carts.append(orders)
+        
+        return jsonify({
+            "carts" : carts1,
+            "items" : new_carts
+        })
+    # carts.orders
+
+
+@app.route("/seller/order", methods=['GET'])
+@login_required
+def get_sellerorder():
+    products = Product.query.filter_by(seller_id=current_user.id).all()
+    carts = Cart.query.filter_by(checkout=True).all()
+    items=[]
+    for product in products :
+        orderlists = []
+        if product.id 
+        for i in product.get_orders() :
+            items.append({
+                "cart_id" : i.id,
+                "user_id" : i.user_id,
+                "user_name" : i.user_name,
+                "quantity" : i.quantity,
+            })
+        items.append(orderlists)
+
+    return jsonify({
+        "orders" : items
+    })
