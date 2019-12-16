@@ -31,10 +31,12 @@ class User(UserMixin, db.Model):
 
     def render(self):
         return {
-                    "name":self.name,
+                    "user_name":self.name,
                     "id":self.id,
                     "email":self.email,
-                    "seller":self.seller
+                    "seller":self.seller,
+                    "avatar_url" : self.avatar_url
+
                 }
 
 class OAuth(OAuthConsumerMixin, db.Model):
@@ -74,7 +76,13 @@ class Product(db.Model):
             Cart.user_id.label('user_id'),
             User.name.label('user_name'),
             func.count(Cart.id).label('quantity')
-            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id,User.id,OrderItem.seller_id).all()
+            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id,User.id, OrderItem.seller_id).all()
+
+
+###  Got seller ID & cartID => find all orderitems with sellerID+cartID => loop set .shipped to true
+### Check: if all items in [Carts where cartID = above] has shipped = True =>CartID.shipped = true
+
+
 
 
 class Cart(db.Model):
@@ -84,6 +92,7 @@ class Cart(db.Model):
     order_items = db.relationship('OrderItem', backref="cart", lazy="dynamic")
     checkout = db.Column(db.Boolean, default=False)
     orderss = db.relationship('Order', backref="cart", lazy=True)
+    shipped = db.Column(db.Boolean, default=False)
 
     def get_total(self):
         return OrderItem.query.join(Product).with_entities(
@@ -101,9 +110,9 @@ class Cart(db.Model):
             func.count(Product.id).label('quantity'),
             func.sum(Product.price).label('amount')
             ).filter(OrderItem.cart_id == self.id).filter(User.id == Product.seller_id).group_by(Product.id, User.name).all()
-    
-    
-    
+
+
+
 
 class OrderItem(db.Model):
     __tablename__="order_items"
@@ -111,6 +120,9 @@ class OrderItem(db.Model):
     product_id= db.Column(db.Integer, db.ForeignKey(Product.id))
     cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
     seller_id = db.Column(db.Integer, db.ForeignKey(User.id))
+    # status = db.Column(db.String, default = "Ordered")
+    shipped = db.Column(db.Boolean, default=False)
+
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -118,6 +130,15 @@ class Order(db.Model):
     status = db.Column(db.String, default = "Ordered")
     created = db.Column(db.DateTime(timezone=True), server_default=func.now())
     add = db.relationship('Address', backref="order", lazy=True)
+    shipped=  db.Column(db.Boolean, default=False)
+    ## shipped = ........ default = false
+
+
+
+### from seller : got id of cart
+
+
+
 
 
 class Address(db.Model):

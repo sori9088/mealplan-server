@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, render_template
 from flask_login import login_required, logout_user, current_user,login_user
 from .config import Config
-from .models import db, login_manager, Token, User, Product, Cart, OrderItem, Order, Address
+from .models import db, login_manager, Token, User, Product, Cart, OrderItem, Order, Address, OAuth
 from .oauth import blueprint
 from .cli import create_db
 from flask_migrate import Migrate
@@ -55,14 +55,20 @@ def index():
 @app.route("/getuser", methods=['GET','POST'])
 @login_required
 def getuser():
+    fb_id = OAuth.query.filter_by(user_id=current_user.id).first() 
+    if fb_id :
+        face_id = fb_id.provider_user_id
+    face_id = ""       
     return jsonify({
         "success" : True,
         "user":{
-        "user_id" : current_user.id,
-        "user_name" : current_user.name ,
-        "avatar_url" : current_user.avatar_url,
-        "seller" : current_user.seller
-                }
+                "user_id" : current_user.id,
+                "user_name" : current_user.name ,
+                "avatar_url" : current_user.avatar_url,
+                "seller" : current_user.seller,
+                "fb_id" : face_id
+
+                        }
     })
 
 
@@ -81,6 +87,7 @@ def login() :
             login_user(user)
             #check token
             token = Token.query.filter_by(user_id=user.id).first()
+            fb_id = OAuth.query.filter_by(user_id=user.id).first()
             if not token:
                 token = Token( user_id=user.id, uuid=str(uuid.uuid4().hex))
                 db.session.add(token)
@@ -88,7 +95,9 @@ def login() :
             return jsonify(
                 success=True,
                 token=token.uuid,
-                user=user.render()
+                user=user.render(),
+                fb_id = fb_id.provider_user_id
+
             )
         return jsonify(success=False, code=2, message="Wrong password")
 
@@ -126,7 +135,7 @@ def get_order():
             "status" : cart.orderss[0].status,
             "ordered" : cart.orderss[0].created
             }for cart in carts]
-        
+
         # import code; code.interact(local=dict(globals(), **locals()))
         new_carts=[]
         for cart in carts:
@@ -145,7 +154,7 @@ def get_order():
                     "each_total" : i.amount
                 })
             new_carts.append(orders)
-        
+
         return jsonify({
             "items" : new_carts
         })
