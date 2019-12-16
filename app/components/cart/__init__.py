@@ -31,7 +31,8 @@ def add_cart():
         orderitems = []
         for i in range(num) :
             new = OrderItem(product_id = product.id ,
-                            cart_id = cur_cart.id)
+                            cart_id = cur_cart.id,
+                            seller_id = product.seller_id)
             orderitems.append(new)
 
         db.session.add_all(orderitems)

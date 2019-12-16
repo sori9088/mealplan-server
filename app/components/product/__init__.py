@@ -96,9 +96,11 @@ def single_product(id):
         "img_url" : product.img_url,
         "description" : product.description,
         "seller" : User.query.filter_by(id=product.seller_id).first().name,
+        "seller_id" : product.seller_id,
         "created" : product.created,
         "price" : product.price,
-        "status" : status
+        "status" : status,
+        "seller_img" : User.query.filter_by(id=product.seller_id).first().avatar_url
 
         }
 
@@ -130,3 +132,25 @@ def soldout():
         }
         return jsonify(data)
 
+
+@pb.route("/seller/info", methods=['GET','POST'])
+@login_required
+def get_sellerorder():
+    if request.method == 'POST' :
+        data = request.get_json()
+        products = Product.query.filter_by(seller_id=data['id']).all()
+
+        items=[]
+        for product in products :
+            orderlists = []
+            for i in product.get_orders() :
+                orderlists.append({
+                    "product" : product.name,
+                    "product_id" : product.id
+                    })
+            items.append(orderlists)
+
+        return jsonify({
+            "orders" : items,
+            "count" : len(products)
+            })

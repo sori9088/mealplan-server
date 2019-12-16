@@ -133,6 +133,9 @@ def get_order():
             orders = []
             for i in cart.get_bill() :
                 orders.append({
+                    "cart_id" : cart.id,
+                    "status" : cart.orderss[0].status,
+                    "ordered" : cart.orderss[0].created,
                     "seller_name" : i.seller_name,
                     "product_id" : i.id,
                     "product_name" : i.name,
@@ -144,7 +147,6 @@ def get_order():
             new_carts.append(orders)
         
         return jsonify({
-            "carts" : carts1,
             "items" : new_carts
         })
     # carts.orders
@@ -154,20 +156,23 @@ def get_order():
 @login_required
 def get_sellerorder():
     products = Product.query.filter_by(seller_id=current_user.id).all()
-    carts = Cart.query.filter_by(checkout=True).all()
+
     items=[]
     for product in products :
         orderlists = []
-        if product.id 
         for i in product.get_orders() :
-            items.append({
+            orderlists.append({
+                "product" : product.name,
+                "product_id" : product.id,
+                "price" : product.price,
+                "img_url" : product.img_url,
                 "cart_id" : i.id,
                 "user_id" : i.user_id,
                 "user_name" : i.user_name,
-                "quantity" : i.quantity,
-            })
+                "quantity" : i.quantity
+                })
         items.append(orderlists)
 
     return jsonify({
         "orders" : items
-    })
+        })

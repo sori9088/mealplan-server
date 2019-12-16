@@ -21,7 +21,7 @@ class User(UserMixin, db.Model):
     seller = db.Column(db.Boolean, default=False)
     products = db.relationship('Product', backref='user', lazy=True)
     cartss = db.relationship('Cart', backref='user', lazy=True)
-
+    orderitems = db.relationship('OrderItem', backref='user', lazy=True)
 
     def set_password(self, password) :
         self.password = generate_password_hash(password)
@@ -73,8 +73,8 @@ class Product(db.Model):
             Cart.id.label('id'),
             Cart.user_id.label('user_id'),
             User.name.label('user_name'),
-            func.count(Cart.id).label('quantity'),
-            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id,User.id).all()
+            func.count(Cart.id).label('quantity')
+            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id,User.id,OrderItem.seller_id).all()
 
 
 class Cart(db.Model):
@@ -110,7 +110,7 @@ class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id= db.Column(db.Integer, db.ForeignKey(Product.id))
     cart_id =  db.Column(db.Integer, db.ForeignKey(Cart.id))
-
+    seller_id = db.Column(db.Integer, db.ForeignKey(User.id))
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
