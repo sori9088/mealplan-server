@@ -39,7 +39,6 @@ def add_cart():
         db.session.commit()
 
         carts = Cart.query.filter_by(user_id=current_user.id, checkout=False).first()
-        # items = OrderItem.query.filter_by(cart_id=carts.id).all()
         orderitems1 = carts.get_bill()
         num_of_items = len(orderitems1)
         b = carts.get_total()

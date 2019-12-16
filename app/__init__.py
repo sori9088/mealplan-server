@@ -15,12 +15,12 @@ load_dotenv()
 
 
 app = Flask(__name__)
-CORS(app) # Add me after the above line
+CORS(app) 
 app.config.from_object(Config)
 app.register_blueprint(blueprint, url_prefix="/login")
 app.cli.add_command(create_db)
 db.init_app(app)
-migrate = Migrate(app, db) # this
+migrate = Migrate(app, db) 
 login_manager.init_app(app)
 
 
@@ -87,7 +87,6 @@ def login() :
             login_user(user)
             #check token
             token = Token.query.filter_by(user_id=user.id).first()
-            fb_id = OAuth.query.filter_by(user_id=user.id).first()
             if not token:
                 token = Token( user_id=user.id, uuid=str(uuid.uuid4().hex))
                 db.session.add(token)
@@ -95,9 +94,7 @@ def login() :
             return jsonify(
                 success=True,
                 token=token.uuid,
-                user=user.render(),
-                fb_id = fb_id.provider_user_id
-
+                user=user.render()
             )
         return jsonify(success=False, code=2, message="Wrong password")
 
@@ -158,7 +155,6 @@ def get_order():
         return jsonify({
             "items" : new_carts
         })
-    # carts.orders
 
 
 @app.route("/seller/order", methods=['GET'])
