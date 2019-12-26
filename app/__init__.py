@@ -174,10 +174,57 @@ def get_sellerorder():
                 "cart_id" : i.id,
                 "user_id" : i.user_id,
                 "user_name" : i.user_name,
-                "quantity" : i.quantity
+                "quantity" : i.quantity,
+                "shipped" : i.status
                 })
         items.append(orderlists)
 
     return jsonify({
         "orders" : items
         })
+
+
+@app.route("/seller/shipped", methods=['POST' ,'GET'])
+@login_required
+def shipped() :
+    if request.method == 'POST' :
+        data= request.get_json()
+        cur_cart = Cart.query.filter_by(id=data['cart_id']).first()
+        allitems= OrderItem.query.filter_by(cart_id = cur_cart.id, seller_id = current_user.id, product_id=data['product_id']).all()
+        for item in allitems:
+            item.shipped = True
+        db.session.commit()
+
+        a = []
+        check_items = OrderItem.query.filter_by(cart_id = cur_cart.id).all() # check items in current cart has shipped 
+        cur_order = Order.query.filter_by(cart_id = cur_cart.id).first()
+        for item in check_items :
+            a.append(item.shipped)
+        if all(a) :
+            cur_cart.shipped = True
+            cur_order.status = "On delivery"
+            db.session.commit()
+        
+
+        products = Product.query.filter_by(seller_id=current_user.id).all()
+
+        items=[]
+        for product in products :
+            orderlists = []
+            for i in product.get_orders() :
+                orderlists.append({
+                    "product" : product.name,
+                    "product_id" : product.id,
+                    "price" : product.price,
+                    "img_url" : product.img_url,
+                    "cart_id" : i.id,
+                    "user_id" : i.user_id,
+                    "user_name" : i.user_name,
+                    "quantity" : i.quantity,
+                    "shipped" : i.status
+                    })
+            items.append(orderlists)
+
+        return jsonify({
+            "orders" : items
+            })

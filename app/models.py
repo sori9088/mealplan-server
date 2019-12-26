@@ -19,9 +19,13 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(200))
     avatar_url = db.Column(db.String, default='https://img.icons8.com/cotton/2x/person-male.png')
     seller = db.Column(db.Boolean, default=False)
+
+    # relationships
+
     products = db.relationship('Product', backref='user', lazy=True)
     cartss = db.relationship('Cart', backref='user', lazy=True)
     orderitems = db.relationship('OrderItem', backref='user', lazy=True)
+    comments = db.relationship('Comment', backref='user', lazy= True)
 
     def set_password(self, password) :
         self.password = generate_password_hash(password)
@@ -66,6 +70,7 @@ class Product(db.Model):
 
     #relationship
     order_items = db.relationship('OrderItem', backref="product", lazy="dynamic")
+    comments = db.relationship('Comment', backref="product", lazy=True)
 
     def get_products(self):
         return Product.query.filter_by(seller_id=self.id).all()
@@ -75,8 +80,9 @@ class Product(db.Model):
             Cart.id.label('id'),
             Cart.user_id.label('user_id'),
             User.name.label('user_name'),
+            OrderItem.shipped.label('status'),
             func.count(Cart.id).label('quantity')
-            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id,User.id, OrderItem.seller_id).all()
+            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id,User.id, OrderItem.seller_id,OrderItem.shipped).all()
 
 
 ###  Got seller ID & cartID => find all orderitems with sellerID+cartID => loop set .shipped to true
@@ -150,6 +156,17 @@ class Address(db.Model):
     add2 = db.Column(db.String)
     city = db.Column(db.String)
     zipcode = db.Column(db.Integer)
+
+
+class Comment(db.Model) :
+    id = db.Column(db.Integer, primary_key = True)
+    product_id= db.Column(db.Integer, db.ForeignKey(Product.id))
+    user_id = db.Column(db.Integer, db.ForeignKey(User.id))
+    body = db.Column(db.Text, default="No comment")
+    rating = db.Column(db.Integer)
+    created = db.Column(db.DateTime(timezone=True), server_default=func.now())
+
+
 
 
 # setup login manager

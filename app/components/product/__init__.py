@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
-from app.models import db, login_manager, Token, User, Product, Cart, OrderItem
+from app.models import db, login_manager, Token, User, Product, Cart, OrderItem,Comment
 
 
 pb = Blueprint('product', __name__)
@@ -57,7 +57,7 @@ def get_products():
         "created" : product.created,
         "price" : product.price,
         "status" : "In stock" if product.out_of_stock==False else "Sold Out"
-                } for product in products ]
+        } for product in products ]
     }
     return jsonify(data)
 
@@ -154,3 +154,91 @@ def get_sellerorder():
             "orders" : items,
             "count" : len(products)
             })
+
+
+@pb.route("/comment/get/<id>" , methods=['GET'])
+def get_comment(id):
+    comments = Comment.query.filter_by(product_id=id).all()
+    return jsonify({
+            "success" : True,
+            "comments" : [{
+            "id" : comment.id,
+            "body" : comment.body,
+            "user_id" : comment.user_id,
+            "user_name" : comment.user.name,
+            "avatar_url" : comment.user.avatar_url,
+            "rating" : comment.rating,
+            "created" : comment.created
+        }for comment in comments]
+    })
+
+
+
+@pb.route("/comment/getall" , methods=['GET'])
+def all_comment():
+    comments = Comment.query.all()
+    return jsonify({
+            "success" : True,
+            "comments" : [{
+            "id" : comment.id,
+            "body" : comment.body,
+            "user_id" : comment.user_id,
+            "user_name" : comment.user.name,
+            "avatar_url" : comment.user.avatar_url,
+            "rating" : comment.rating,
+            "created" : comment.created,
+            "product_id" : comment.product_id
+        }for comment in comments]
+    })
+
+
+@pb.route("/comment/new", methods=['GET','POST'])
+@login_required
+def new_comment():
+    if request.method == 'POST' :
+        data = request.get_json()
+        new_comment= Comment(
+            user_id = current_user.id,
+            product_id = data['id'],
+            body = data['comment']['comment'],
+            rating = data['comment']['rating']
+        )
+        db.session.add(new_comment)
+        db.session.commit()
+
+        comments = Comment.query.filter_by(product_id=data['id']).all()
+        return jsonify({
+            "success" : True,
+            "comments" : [{
+                "id" : comment.id,
+                "body" : comment.body,
+                "user_id" : comment.user_id,
+                "user_name" : comment.user.name,
+                "avatar_url" : comment.user.avatar_url,
+                "rating" : comment.rating,
+                "created" : comment.created
+            }for comment in comments]
+        })
+
+@pb.route("/comment/delete", methods=['GET','POST'])
+@login_required
+def delete_comment():
+    if request.method == 'POST' :
+        data = request.get_json()
+        cur_comment = Comment.query.filter_by(id = data['id']).first()
+        db.session.delete(cur_comment)
+        db.session.commit()
+
+        comments = Comment.query.filter_by(product_id=data['p_id']).all()
+        return jsonify({
+            "success" : True,
+            "comments" : [{
+                "id" : comment.id,
+                "body" : comment.body,
+                "user_id" : comment.user_id,
+                "user_name" : comment.user.name,
+                "avatar_url" : comment.user.avatar_url,
+                "rating" : comment.rating,
+                "created" : comment.created
+            }for comment in comments]
+        })
