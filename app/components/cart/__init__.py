@@ -186,7 +186,7 @@ def charge() :
         amount = data['price']
 
         stripe.Charge.create(
-            amount_decimal= amount*100,
+            amount= amount*100,
             currency= 'usd',
             card = data['token']
         )
