@@ -56,7 +56,8 @@ def get_products():
         "seller" : User.query.filter_by(id=product.seller_id).first().name,
         "created" : product.created,
         "price" : product.price,
-        "status" : "In stock" if product.out_of_stock==False else "Sold Out"
+        "status" : "In stock" if product.out_of_stock==False else "Sold Out",
+        "rating" : product.get_rating()
         } for product in products ]
     }
     return jsonify(data)

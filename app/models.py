@@ -74,6 +74,14 @@ class Product(db.Model):
 
     def get_products(self):
         return Product.query.filter_by(seller_id=self.id).all()
+    
+    def get_rating(self) :
+        a = Comment.query.with_entities((func.sum(Comment.rating)/func.count(Comment.rating)).label('average'),
+                                         func.count(Comment.rating).label('count')).filter(Comment.product_id==self.id).first()
+        return {
+            "rating": a.average,
+            "count" : a.count
+        }
 
     def get_orders(self):
         return OrderItem.query.join(Cart).join(User).with_entities(
