@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, render_template
 from flask_login import login_required, logout_user, current_user,login_user
 from .config import Config
-from .models import db, login_manager, Token, User, Product, Cart, OrderItem, Order, Address, OAuth
+from .models import db, login_manager, Token, User, Product, Cart, OrderItem, Order, Address, OAuth, Comment
 from .oauth import blueprint
 from .cli import create_db
 from flask_migrate import Migrate
@@ -126,6 +126,8 @@ def register() :
 @login_required
 def get_order():
     carts = Cart.query.filter_by(user_id=current_user.id, checkout=True).all()
+    comments = Comment.query.filter_by(user_id=current_user.id).all()
+    count_comments = len(comments)
     if carts :
         carts1 =[ {
             "cart_id": cart.id,
@@ -153,7 +155,8 @@ def get_order():
             new_carts.append(orders)
 
         return jsonify({
-            "items" : new_carts
+            "items" : new_carts,
+            "comments" : count_comments
         })
 
 
