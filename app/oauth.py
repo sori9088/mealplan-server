@@ -45,7 +45,7 @@ def facebook_logged_in(blueprint, token):
     else:
         fid = oauth.provider_user_id
         # Create a new local user account for this user
-        user = User(name=info["name"], avatar_url= "http://graph.facebook.com/"+fid+"/picture?type=square")
+        user = User(name=info["name"], avatar_url= "http://graph.facebook.com/"+fid+"/picture?type=large")
         # Associate the new local user account with the OAuth token
         oauth.user = user
         # Save and commit our database models

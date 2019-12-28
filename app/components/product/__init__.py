@@ -11,12 +11,13 @@ pb = Blueprint('product', __name__)
 def new_dish() :
     user_id = current_user.id
     if request.method =='POST' :
-        data= request.get_json()
+        data= request.get_json()['input']
+        data1= request.get_json()
         new_dish = Product(
             name=data['name'],
             seller_id = user_id,
             price= data['price'],
-            img_url= "https://i-love-png.com/images/no-image-slide.png" if data['img_url']=="" else data['img_url'],
+            img_url= "https://i-love-png.com/images/no-image-slide.png" if data1['img_url']=="" else data1['img_url'],
             description= data['description']
         )
         db.session.add(new_dish)
@@ -135,13 +136,13 @@ def soldout():
 
 
 @pb.route("/seller/info", methods=['GET','POST'])
-@login_required
 def get_sellerorder():
     if request.method == 'POST' :
         data = request.get_json()
         products = Product.query.filter_by(seller_id=data['id']).all()
 
         items=[]
+        a=0
         for product in products :
             orderlists = []
             for i in product.get_orders() :
@@ -149,10 +150,12 @@ def get_sellerorder():
                     "product" : product.name,
                     "product_id" : product.id
                     })
+                a+=1
             items.append(orderlists)
 
         return jsonify({
             "orders" : items,
+            "order_count" : a,
             "count" : len(products)
             })
 

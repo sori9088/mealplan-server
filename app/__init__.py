@@ -102,7 +102,8 @@ def login() :
 @app.route("/register", methods=['POST','GET'])
 def register() :
     if request.method == "POST":
-        data = request.get_json()
+        data = request.get_json()['input']
+        data1= request.get_json()
         if  User.query.filter_by(email=data['email']).first():
             return jsonify({
                 "success":False,
@@ -111,7 +112,7 @@ def register() :
         new_user = User(
             name=data['name'],
             email=data['email'],
-            avatar_url =  "https://img.icons8.com/cotton/2x/person-male.png" if data['avatar_url']== "" else  data['avatar_url'],
+            avatar_url =  "https://img.icons8.com/cotton/2x/person-male.png" if data1['avatar_url']== "" else  data1['avatar_url'],
             seller=True if data['seller'] =='true' else False
         )
         new_user.set_password(data['password'])
@@ -166,6 +167,7 @@ def get_sellerorder():
     products = Product.query.filter_by(seller_id=current_user.id).all()
 
     items=[]
+    a = 0  # order_count
     for product in products :
         orderlists = []
         for i in product.get_orders() :
@@ -180,10 +182,12 @@ def get_sellerorder():
                 "quantity" : i.quantity,
                 "shipped" : i.status
                 })
+            a+=1
         items.append(orderlists)
 
     return jsonify({
-        "orders" : items
+        "orders" : items,
+        "order_count" : a
         })
 
 

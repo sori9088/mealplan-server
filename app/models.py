@@ -90,7 +90,9 @@ class Product(db.Model):
             User.name.label('user_name'),
             OrderItem.shipped.label('status'),
             func.count(Cart.id).label('quantity')
-            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id,User.id, OrderItem.seller_id,OrderItem.shipped).all()
+            ).filter(OrderItem.product_id == self.id).filter(User.id== Cart.user_id).filter(Cart.checkout==True).group_by(Cart.id, User.id, OrderItem.seller_id,OrderItem.shipped).all()
+
+
 
 
 ###  Got seller ID & cartID => find all orderitems with sellerID+cartID => loop set .shipped to true
